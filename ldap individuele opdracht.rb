@@ -5,32 +5,30 @@ puts "enter a ldap address"
 address = gets.chomp
 puts "enter a first name"
 name = gets.chomp
+puts "enter a file name"
+file = gets.chomp
 
-ldap = Net::LDAP.new :host => "ldap.itd.umich.edu",
-# ldap = Net::LDAP.new :host => address,
-                     :port => 389,
-                     :auth => {
-                         :method => :anonymous,
-                     }
+begin
+  ldap = Net::LDAP.new :host => address,
+                       :port => 389,
+                       :auth => {
+                           :method => :anonymous,
+                       }
 
-# filter = Net::LDAP::Filter.eq("cn", "Amy Newman")
-# filter = Net::LDAP::Filter.eq("cn", "#{name}*")
-filter = Net::LDAP::Filter.eq("cn", "aio epsilon")
-treebase = "ou=User"
-# treebase = "ou=Medical School"
-# filter2 = Net::LDAP::Filter.eq("ou", "User")
-# joined_filter = Net::LDAP::Filter.join(filter, filter2)
+  cn_filter = Net::LDAP::Filter.eq("ou", "Medical School - Faculty and Staff")
+  ou_filter = Net::LDAP::Filter.eq("cn", "#{name}*")
+  composite_filter = Net::LDAP::Filter.join(cn_filter, ou_filter)
 
-
-# ldap.search(:base => treebase, :filter => filter) do |entry|
-ldap.search(:base => "", :filter => filter) do |entry|
-  entry.each do |attribute, values|
-
-    # if attribute.to_s == "mail"
-      print  "   #{attribute}: "
-      values.each do |value|
-        puts "#{value}"
+  ldap.search(:base => "", :filter => composite_filter) do |entry|
+    entry.each do |attribute, values|
+      if attribute.to_s == "mail"
+        entry.each do |attribute, values|
+          File.open("#{file}.txt", 'a') { |f| f.write("#{attribute}: #{values[0]}\n") }
+        end
+        File.open("#{file}.txt", 'a') { |f| f.write("\n") }
       end
-    # end
+    end
   end
+rescue
+  puts "can't connect to LDAP address"
 end
